@@ -96,9 +96,8 @@ export default function Hero() {
       });
 
       // At progress 1.0, the shader is fully white. 
-      // We can fade in the final image and text content right at the end.
+      // We can fade in the text content right at the end.
       tl.to(canvasWrapperRef.current, { opacity: 0, duration: 0.1 }, 0.95);
-      tl.to(finalImageRef.current, { opacity: 1, duration: 0.1 }, 0.95);
       tl.to(contentRef.current, { opacity: 1, duration: 0.05, ease: 'power2.out' }, 0.95);
     });
 
@@ -122,10 +121,11 @@ export default function Hero() {
           style={{
             position: 'fixed',
             top: 0, left: 0, width: '100%', height: '100%',
+            backgroundColor: '#050505',
             backgroundImage: 'url(/hero-final.png)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            opacity: 0,
+            opacity: 1,
             zIndex: -1,
             pointerEvents: 'none'
           }}
