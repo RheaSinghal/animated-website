@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -8,7 +8,11 @@ import './ExplosionShader';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const VideoScene = ({ videoRef, progressRef }) => {
+/**
+ * VideoScene — memoized to prevent re-renders since it receives stable refs.
+ * This is the core Three.js scene that scrubs the video and runs the explosion shader.
+ */
+const VideoScene = React.memo(({ videoEl, progressRef }) => {
   const materialRef = useRef();
   const { viewport, size } = useThree();
   const [videoTexture, setVideoTexture] = useState(null);
@@ -34,22 +38,34 @@ const VideoScene = ({ videoRef, progressRef }) => {
     scaleY = viewport.height;
   }
 
+  // Memoize the resolution vector to avoid creating a new object every frame
+  const resolution = useMemo(
+    () => new THREE.Vector2(size.width, size.height),
+    [size.width, size.height]
+  );
+
   useEffect(() => {
-    if (videoRef.current) {
-      const tex = new THREE.VideoTexture(videoRef.current);
+    if (videoEl) {
+      const tex = new THREE.VideoTexture(videoEl);
       tex.minFilter = THREE.LinearFilter;
       tex.magFilter = THREE.LinearFilter;
       tex.generateMipmaps = false;
       setVideoTexture(tex);
       
       const handleLoad = () => {
-        setVideoDim({ w: videoRef.current.videoWidth, h: videoRef.current.videoHeight });
+        setVideoDim({ w: videoEl.videoWidth, h: videoEl.videoHeight });
       };
       
-      if (videoRef.current.readyState >= 1) handleLoad();
-      else videoRef.current.addEventListener('loadedmetadata', handleLoad);
+      if (videoEl.readyState >= 1) handleLoad();
+      else videoEl.addEventListener('loadedmetadata', handleLoad);
+
+      // Cleanup: dispose texture on unmount to free GPU memory
+      return () => {
+        tex.dispose();
+        videoEl.removeEventListener('loadedmetadata', handleLoad);
+      };
     }
-  }, [videoRef]);
+  }, [videoEl]);
 
   useFrame(() => {
     if (materialRef.current) {
@@ -61,9 +77,9 @@ const VideoScene = ({ videoRef, progressRef }) => {
       let videoProgress = Math.min(p / videoScrubEnd, 1.0);
       let shaderProgress = Math.max(0, (p - videoScrubEnd) / (1.0 - videoScrubEnd));
       
-      if (videoRef.current && videoRef.current.readyState >= 2) {
+      if (videoEl && videoEl.readyState >= 2) {
         // We use requestAnimationFrame in useFrame to smoothly update time
-        videoRef.current.currentTime = videoProgress * videoRef.current.duration;
+        videoEl.currentTime = videoProgress * videoEl.duration;
       }
 
       materialRef.current.uProgress = shaderProgress;
@@ -77,101 +93,126 @@ const VideoScene = ({ videoRef, progressRef }) => {
         <explosionMaterial
           ref={materialRef}
           uTexture={videoTexture}
-          uResolution={new THREE.Vector2(size.width, size.height)}
+          uResolution={resolution}
         />
       ) : (
         <meshBasicMaterial color="black" />
       )}
     </mesh>
   );
-};
+});
 
-export default function Hero() {
+VideoScene.displayName = 'VideoScene';
+
+export default function Hero({ onReady }) {
   const containerRef = useRef(null);
   const canvasWrapperRef = useRef(null);
   const finalImageRef = useRef(null);
   const contentRef = useRef(null);
-  const videoRef = useRef(null);
   const scrollIndicatorRef = useRef(null);
+  const [videoEl, setVideoEl] = useState(null);
   
   // We use a ref for progress to avoid React re-renders on every scroll tick
   const progressRef = useRef(0);
 
+  // Track if timeline is created to prevent StrictMode double-creation
+  const tlCreated = useRef(false);
+  const timelineRef = useRef(null);
+
+  // Callback ref to guarantee we get the video node the moment it renders
+  const videoCallbackRef = (node) => {
+    if (node && !videoEl) {
+      setVideoEl(node);
+    }
+  };
+
   useEffect(() => {
-    // Setup video element
-    const video = document.createElement('video');
-    video.src = '/hero-video.mp4';
-    video.crossOrigin = 'Anonymous';
-    video.loop = false;
-    video.muted = true;
-    video.playsInline = true;
-    video.pause(); // we scrub manually
-    videoRef.current = video;
+    if (!videoEl) return;
 
-    // Wait for metadata to know duration
-    video.addEventListener('loadedmetadata', () => {
-      // Setup ScrollTrigger
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: 'top top',
-          end: '+=4000', // 4000px of scrolling for the hero section
-          scrub: 1, // Smooth scrubbing
-          pin: true,
-          onUpdate: (self) => {
-            progressRef.current = self.progress;
+    // Setup the timeline and trigger onReady when video is at least minimally loaded
+    const handleReady = () => {
+      // Create ScrollTrigger only once
+      if (!tlCreated.current) {
+        tlCreated.current = true;
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: 'top top',
+            end: '+=4000', // 4000px of scrolling for the hero section
+            scrub: 1, // Smooth scrubbing
+            pin: true,
+            onUpdate: (self) => {
+              progressRef.current = self.progress;
+            },
           },
-        },
-      });
+        });
 
-      // Fade out scroll indicator immediately as user starts scrolling
-      tl.to(scrollIndicatorRef.current, { opacity: 0, duration: 0.05 }, 0);
+        // Fade out scroll indicator immediately as user starts scrolling
+        tl.to(scrollIndicatorRef.current, { opacity: 0, duration: 0.05 }, 0);
 
-      // At progress 1.0, the shader is fully white. 
-      // We can fade in the text content right at the end.
-      tl.to(canvasWrapperRef.current, { opacity: 0, duration: 0.1 }, 0.95);
-      tl.to(contentRef.current, { opacity: 1, duration: 0.05, ease: 'power2.out' }, 0.95);
-    });
+        // At progress 1.0, the shader is fully white. 
+        // We can fade in the video canvas right at the end to reveal the crisp resting background image.
+        tl.to(canvasWrapperRef.current, { opacity: 0, duration: 0.1 }, 0.95);
+        
+        // Text appears the moment the video ends
+        tl.to(contentRef.current, { opacity: 1, duration: 0.05, ease: 'power2.out' }, 0.95);
+
+        // Force GSAP to recalculate all other triggers (like Sections) now that we've added a 4000px pin spacer
+        ScrollTrigger.refresh();
+        
+        timelineRef.current = tl;
+      }
+
+      // Signal to App that the video is ready to be shown
+      if (onReady) onReady();
+    };
+
+    if (videoEl.readyState >= 2) { // HAVE_CURRENT_DATA or more
+      handleReady();
+    } else {
+      videoEl.addEventListener('loadeddata', handleReady, { once: true });
+      videoEl.addEventListener('canplaythrough', handleReady, { once: true });
+    }
 
     return () => {
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.removeAttribute('src');
-        videoRef.current.load();
+      if (timelineRef.current) {
+        timelineRef.current.kill();
+        timelineRef.current = null;
       }
-      ScrollTrigger.getAll().forEach(t => t.kill());
+      tlCreated.current = false;
     };
-  }, []);
+  }, [videoEl, onReady]);
 
   return (
-    <section id="home" ref={containerRef} style={{ height: '100vh', width: '100vw', position: 'relative' }}>
+    <section id="home" ref={containerRef} className="hero-section">
       
       {/* Background Image that fades in at the end */}
       {createPortal(
         <div 
           ref={finalImageRef}
-          style={{
-            position: 'fixed',
-            top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: '#050505',
-            backgroundImage: 'url(/hero-final.png)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 1,
-            zIndex: -1,
-            pointerEvents: 'none'
-          }}
+          className="hero-final-image"
         />,
         document.body
       )}
 
+      {/* Hidden Video Element to force browser to respect loading lifecycle */}
+      <video 
+        ref={videoCallbackRef}
+        src="/hero-video.mp4" 
+        crossOrigin="Anonymous" 
+        muted 
+        playsInline 
+        preload="auto"
+        style={{ display: 'none' }} 
+      />
+
       {/* R3F Canvas */}
       <div 
         ref={canvasWrapperRef}
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 2, backgroundColor: '#050505' }}
+        className="hero-canvas-wrapper"
       >
         <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
-          <VideoScene videoRef={videoRef} progressRef={progressRef} />
+          {videoEl && <VideoScene videoEl={videoEl} progressRef={progressRef} />}
         </Canvas>
       </div>
 
@@ -184,7 +225,7 @@ export default function Hero() {
       </div>
 
       {/* Glassmorphism Text Panel */}
-      <div ref={contentRef} className="hero-content glass-panel" style={{ zIndex: 3 }}>
+      <div ref={contentRef} className="hero-content glass-panel">
         <h1>Lorem Ipsum Dolor</h1>
         <p>
           Consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 

@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
-export default function Navbar() {
+const Navbar = React.memo(function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Stable toggle handler
+  const toggleMenu = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setIsOpen(false);
+  }, []);
 
   // Prevent scrolling when menu is open
   useEffect(() => {
@@ -16,14 +25,15 @@ export default function Navbar() {
   return (
     <>
       <nav className="navbar">
-        <div className="nav-logo" onClick={() => setIsOpen(false)}>
+        <div className="nav-logo" onClick={closeMenu}>
           BRAND
         </div>
         
         <button 
           className={`hamburger ${isOpen ? 'open' : ''}`} 
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={toggleMenu}
           aria-label="Toggle Menu"
+          aria-expanded={isOpen}
         >
           <span className="line"></span>
           <span className="line"></span>
@@ -37,13 +47,17 @@ export default function Navbar() {
         {/* Menu Items */}
         <div className="nav-overlay-content">
           <ul className="nav-links">
-            <li><a href="#home" onClick={() => setIsOpen(false)}>Home</a></li>
-            <li><a href="#work" onClick={() => setIsOpen(false)}>Work</a></li>
-            <li><a href="#about" onClick={() => setIsOpen(false)}>About</a></li>
-            <li><a href="#contact" onClick={() => setIsOpen(false)}>Contact</a></li>
+            <li><a href="#home" onClick={closeMenu}>Home</a></li>
+            <li><a href="#work" onClick={closeMenu}>Work</a></li>
+            <li><a href="#about" onClick={closeMenu}>About</a></li>
+            <li><a href="#contact" onClick={closeMenu}>Contact</a></li>
           </ul>
         </div>
       </div>
     </>
   );
-}
+});
+
+Navbar.displayName = 'Navbar';
+
+export default Navbar;

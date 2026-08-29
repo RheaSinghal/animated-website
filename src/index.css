@@ -39,6 +39,41 @@ html.lenis {
   pointer-events: none;
 }
 
+/* =========================================
+   Hero Section (moved from inline styles)
+========================================= */
+.hero-section {
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+.hero-canvas-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  background-color: #050505;
+  will-change: opacity; /* Promoted to compositor layer for GSAP opacity tween */
+}
+
+.hero-final-image {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #050505;
+  background-image: url(/hero-final.webp);
+  background-size: cover;
+  background-position: center;
+  opacity: 1;
+  z-index: -1;
+  pointer-events: none;
+}
+
 /* Glassmorphism utilities */
 .glass-panel {
   background: rgba(0, 0, 0, 0.15);
@@ -56,9 +91,10 @@ html.lenis {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  z-index: 10;
+  z-index: 3;
   opacity: 0; /* Hidden initially, faded in via GSAP */
   pointer-events: none; /* Let clicks pass through if needed, though it's just text */
+  will-change: opacity; /* Promoted for GSAP animation */
 }
 
 .hero-content h1 {
@@ -88,11 +124,13 @@ html.lenis {
   padding: 4rem 2rem;
   position: relative;
   z-index: 1;
+  contain: content; /* Layout isolation — browser knows each section is independent */
 }
 
 .section-inner {
   max-width: 800px;
   width: 100%;
+  will-change: opacity, transform; /* Promoted for GSAP scroll-triggered animations */
 }
 
 .section-inner h2 {
@@ -155,6 +193,7 @@ html.lenis {
   background-color: white;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: center right;
+  will-change: transform; /* Promoted for hamburger → X transition */
 }
 
 /* Transform into an X */
@@ -177,6 +216,7 @@ html.lenis {
   display: flex;
   align-items: center;
   justify-content: center;
+  will-change: opacity; /* Promoted for overlay fade transition */
 }
 
 .nav-overlay.open {
@@ -188,7 +228,7 @@ html.lenis {
 .nav-overlay-bg {
   position: absolute;
   inset: 0;
-  background-image: url(/hero-final.png);
+  background-image: url(/hero-final.webp);
   background-size: cover;
   background-position: center;
   z-index: 1;
@@ -228,6 +268,7 @@ html.lenis {
   transform: translateY(30px);
   opacity: 0;
   transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity; /* Promoted for staggered nav link animation */
 }
 
 .nav-links a:hover {
@@ -253,6 +294,13 @@ html.lenis {
   .nav-links a {
     font-size: 1.75rem;
   }
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  .hero-content p {
+    font-size: 1rem;
+    padding: 0 1rem;
+  }
 }
 
 /* =========================================
@@ -269,6 +317,7 @@ html.lenis {
   gap: 1rem;
   z-index: 15;
   pointer-events: none;
+  will-change: opacity; /* Promoted for GSAP fade-out on scroll */
 }
 
 .scroll-text {
@@ -294,6 +343,7 @@ html.lenis {
   position: absolute;
   top: -20px;
   animation: scrollDownDrop 2.5s cubic-bezier(0.77, 0, 0.175, 1) infinite;
+  will-change: top; /* Promoted for scroll-dot animation */
 }
 
 @keyframes scrollDownDrop {

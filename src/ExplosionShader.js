@@ -18,6 +18,8 @@ const ExplosionMaterial = shaderMaterial(
   `,
     // Fragment Shader
   `
+    precision mediump float;
+
     uniform float uProgress;
     uniform sampler2D uTexture;
     uniform vec2 uResolution;
@@ -47,34 +49,34 @@ const ExplosionMaterial = shaderMaterial(
 
     // Sobel filter for edge detection
     float sobel(sampler2D tex, vec2 uv, vec2 res) {
-        vec2 offset[9];
         float w = 1.0 / res.x;
         float h = 1.0 / res.y;
 
-        offset[0] = vec2(-w, -h); offset[1] = vec2(0.0, -h); offset[2] = vec2(w, -h);
-        offset[3] = vec2(-w, 0.0); offset[4] = vec2(0.0, 0.0); offset[5] = vec2(w, 0.0);
-        offset[6] = vec2(-w, h);  offset[7] = vec2(0.0, h);  offset[8] = vec2(w, h);
+        // Sample offsets
+        vec2 o00 = vec2(-w, -h);
+        vec2 o10 = vec2(0.0, -h);
+        vec2 o20 = vec2(w, -h);
+        vec2 o01 = vec2(-w, 0.0);
+        vec2 o21 = vec2(w, 0.0);
+        vec2 o02 = vec2(-w, h);
+        vec2 o12 = vec2(0.0, h);
+        vec2 o22 = vec2(w, h);
 
-        float kernelX[9];
-        kernelX[0] = -1.0; kernelX[1] = 0.0; kernelX[2] = 1.0;
-        kernelX[3] = -2.0; kernelX[4] = 0.0; kernelX[5] = 2.0;
-        kernelX[6] = -1.0; kernelX[7] = 0.0; kernelX[8] = 1.0;
+        // Sample luminance values
+        float l00 = dot(texture2D(tex, uv + o00).rgb, vec3(0.299, 0.587, 0.114));
+        float l10 = dot(texture2D(tex, uv + o10).rgb, vec3(0.299, 0.587, 0.114));
+        float l20 = dot(texture2D(tex, uv + o20).rgb, vec3(0.299, 0.587, 0.114));
+        float l01 = dot(texture2D(tex, uv + o01).rgb, vec3(0.299, 0.587, 0.114));
+        float l21 = dot(texture2D(tex, uv + o21).rgb, vec3(0.299, 0.587, 0.114));
+        float l02 = dot(texture2D(tex, uv + o02).rgb, vec3(0.299, 0.587, 0.114));
+        float l12 = dot(texture2D(tex, uv + o12).rgb, vec3(0.299, 0.587, 0.114));
+        float l22 = dot(texture2D(tex, uv + o22).rgb, vec3(0.299, 0.587, 0.114));
 
-        float kernelY[9];
-        kernelY[0] = -1.0; kernelY[1] = -2.0; kernelY[2] = -1.0;
-        kernelY[3] = 0.0;  kernelY[4] = 0.0;  kernelY[5] = 0.0;
-        kernelY[6] = 1.0;  kernelY[7] = 2.0;  kernelY[8] = 1.0;
+        // Apply Sobel kernels (unrolled — avoids loop overhead on mobile GPUs)
+        float valueX = -l00 + l20 - 2.0 * l01 + 2.0 * l21 - l02 + l22;
+        float valueY = -l00 - 2.0 * l10 - l20 + l02 + 2.0 * l12 + l22;
 
-        float valueX = 0.0;
-        float valueY = 0.0;
-
-        for (int i = 0; i < 9; i++) {
-            vec3 texColor = texture2D(tex, uv + offset[i]).rgb;
-            float luma = dot(texColor, vec3(0.299, 0.587, 0.114));
-            valueX += luma * kernelX[i];
-            valueY += luma * kernelY[i];
-        }
-        return sqrt((valueX * valueX) + (valueY * valueY));
+        return sqrt(valueX * valueX + valueY * valueY);
     }
 
     // Zoom blur / Radial blur
@@ -97,9 +99,12 @@ const ExplosionMaterial = shaderMaterial(
         vec2 center = vec2(0.5, 0.5);
         float distToCenter = distance(uv, center);
 
+        // Pre-compute direction from center (used multiple times below)
+        vec2 dirFromCenter = normalize(uv - center);
+
         // 1. Distort UVs (Shockwave ripple)
         float shockwave = sin(distToCenter * 15.0 - uProgress * 20.0) * smoothstep(0.8, 0.0, abs(distToCenter - (uProgress * 1.5)));
-        vec2 distortedUV = uv + normalize(uv - center) * shockwave * uProgress * 0.1;
+        vec2 distortedUV = uv + dirFromCenter * shockwave * uProgress * 0.1;
         
         // 2. Pixelation that ramps up
         float minGridSize = 30.0; 
@@ -114,10 +119,13 @@ const ExplosionMaterial = shaderMaterial(
         float aberrationAmount = uProgress * 0.05 * distToCenter;
         float blurStrength = uProgress * 0.15;
         
+        // Pre-compute the aberration offset direction (reuses dirFromCenter computed above)
+        vec2 aberrationDir = normalize(finalUV - center);
+
         vec3 baseColor;
-        baseColor.r = radialBlur(uTexture, finalUV + normalize(finalUV - center) * aberrationAmount, center, blurStrength).r;
+        baseColor.r = radialBlur(uTexture, finalUV + aberrationDir * aberrationAmount, center, blurStrength).r;
         baseColor.g = radialBlur(uTexture, finalUV, center, blurStrength).g;
-        baseColor.b = radialBlur(uTexture, finalUV - normalize(finalUV - center) * aberrationAmount, center, blurStrength).b;
+        baseColor.b = radialBlur(uTexture, finalUV - aberrationDir * aberrationAmount, center, blurStrength).b;
 
         // 4. Enhanced Sobel Edges (Glowing fiery outlines)
         float edge = sobel(uTexture, finalUV, uResolution);
@@ -133,7 +141,7 @@ const ExplosionMaterial = shaderMaterial(
         vec3 haloColor = vec3(1.0, 0.3, 0.0) * halo * uProgress * 3.0;
 
         // 6. Dynamic Embers / Sparkles
-        vec2 noiseUV = pixelatedUV * 5.0 - normalize(finalUV - center) * (uProgress * 2.0);
+        vec2 noiseUV = pixelatedUV * 5.0 - dirFromCenter * (uProgress * 2.0);
         float n = noise(noiseUV * 10.0);
         float sparks = pow(smoothstep(0.7, 1.0, n), 3.0) * (edge + coreGlow);
         vec3 sparkColor = vec3(1.0, 0.7, 0.3) * sparks * smoothstep(0.2, 0.9, uProgress) * 5.0;
@@ -152,6 +160,9 @@ const ExplosionMaterial = shaderMaterial(
     }
   `
 );
+
+// Mark as opaque — avoids unnecessary alpha blend pass
+ExplosionMaterial.transparent = false;
 
 // Register it so it can be used as <explosionMaterial /> in R3F
 extend({ ExplosionMaterial });

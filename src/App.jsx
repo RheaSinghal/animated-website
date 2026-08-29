@@ -1,14 +1,33 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Loader from './Loader';
 import Navbar from './Navbar';
 import Hero from './Hero';
-import Sections from './Sections';
+
+// Lazy-load Sections — below the fold, not needed in initial bundle
+const Sections = lazy(() => import('./Sections'));
 
 gsap.registerPlugin(ScrollTrigger);
 
 function App() {
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isTimeUp, setIsTimeUp] = useState(false);
+
+  useEffect(() => {
+    // Minimum load time of 4.5 seconds to allow full cinematic sequence
+    const timer = setTimeout(() => setIsTimeUp(true), 4500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const isLoading = !(isVideoReady && isTimeUp);
+
+  // Stable callback ref — prevents Hero's useEffect from re-firing
+  const handleVideoReady = useCallback(() => {
+    setIsVideoReady(true);
+  }, []);
+
   useEffect(() => {
     // Initialize Lenis for smooth scroll
     const lenis = new Lenis({
@@ -23,23 +42,28 @@ function App() {
 
     lenis.on('scroll', ScrollTrigger.update);
 
-    gsap.ticker.add((time) => {
+    // Store the actual callback reference so we can remove it properly
+    const tickerCallback = (time) => {
       lenis.raf(time * 1000);
-    });
+    };
 
+    gsap.ticker.add(tickerCallback);
     gsap.ticker.lagSmoothing(0);
 
     return () => {
       lenis.destroy();
-      gsap.ticker.remove(lenis.raf);
+      gsap.ticker.remove(tickerCallback);
     };
   }, []);
 
   return (
     <>
+      <Loader isLoading={isLoading} />
       <Navbar />
-      <Hero />
-      <Sections />
+      <Hero onReady={handleVideoReady} />
+      <Suspense fallback={null}>
+        <Sections />
+      </Suspense>
     </>
   );
 }
