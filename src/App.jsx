@@ -21,7 +21,7 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const isLoading = !(isVideoReady && isTimeUp);
+  const isLoading = !isTimeUp;
 
   // Stable callback ref — prevents Hero's useEffect from re-firing
   const handleVideoReady = useCallback(() => {
