@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const Section = ({ title, content }) => {
+const Section = ({ title, content, id }) => {
   const sectionRef = useRef(null);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ const Section = ({ title, content }) => {
   }, []);
 
   return (
-    <section className="content-section">
+    <section id={id} className="content-section">
       <div className="section-inner" ref={sectionRef}>
         <h2>{title}</h2>
         <p>{content}</p>
@@ -43,10 +43,9 @@ export default function Sections() {
 
   return (
     <div style={{ backgroundColor: 'transparent', position: 'relative', zIndex: 1 }}>
-      <Section title="First Normal Section" content={dummyText} />
-      <Section title="Second Normal Section" content={dummyText} />
-      <Section title="Third Normal Section" content={dummyText} />
-      <Section title="Fourth Normal Section" content={dummyText} />
+      <Section id="work" title="Our Work" content={dummyText} />
+      <Section id="about" title="About Us" content={dummyText} />
+      <Section id="contact" title="Get in Touch" content={dummyText} />
     </div>
   );
 }

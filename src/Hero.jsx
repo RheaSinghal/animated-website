@@ -64,6 +64,7 @@ export default function Hero() {
   const finalImageRef = useRef(null);
   const contentRef = useRef(null);
   const videoRef = useRef(null);
+  const scrollIndicatorRef = useRef(null);
   
   // We use a ref for progress to avoid React re-renders on every scroll tick
   const progressRef = useRef(0);
@@ -95,6 +96,9 @@ export default function Hero() {
         },
       });
 
+      // Fade out scroll indicator immediately as user starts scrolling
+      tl.to(scrollIndicatorRef.current, { opacity: 0, duration: 0.05 }, 0);
+
       // At progress 1.0, the shader is fully white. 
       // We can fade in the text content right at the end.
       tl.to(canvasWrapperRef.current, { opacity: 0, duration: 0.1 }, 0.95);
@@ -112,7 +116,7 @@ export default function Hero() {
   }, []);
 
   return (
-    <section ref={containerRef} style={{ height: '100vh', width: '100vw', position: 'relative' }}>
+    <section id="home" ref={containerRef} style={{ height: '100vh', width: '100vw', position: 'relative' }}>
       
       {/* Background Image that fades in at the end */}
       {createPortal(
@@ -141,6 +145,14 @@ export default function Hero() {
         <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
           <VideoScene videoRef={videoRef} progressRef={progressRef} />
         </Canvas>
+      </div>
+
+      {/* Scroll Indicator */}
+      <div className="scroll-indicator" ref={scrollIndicatorRef}>
+        <span className="scroll-text">SCROLL</span>
+        <div className="scroll-line">
+          <div className="scroll-dot"></div>
+        </div>
       </div>
 
       {/* Glassmorphism Text Panel */}

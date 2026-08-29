@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Navbar from './Navbar';
 import Hero from './Hero';
 import Sections from './Sections';
 
@@ -36,6 +37,7 @@ function App() {
 
   return (
     <>
+      <Navbar />
       <Hero />
       <Sections />
     </>
