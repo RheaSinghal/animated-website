@@ -7,7 +7,6 @@ const ExplosionMaterial = shaderMaterial(
     uProgress: 0,
     uTexture: new THREE.Texture(),
     uResolution: new THREE.Vector2(1920, 1080),
-    uImageResolution: new THREE.Vector2(1920, 1080),
   },
   // Vertex Shader
   `
@@ -22,7 +21,6 @@ const ExplosionMaterial = shaderMaterial(
     uniform float uProgress;
     uniform sampler2D uTexture;
     uniform vec2 uResolution;
-    uniform vec2 uImageResolution;
     varying vec2 vUv;
 
     // Simple pseudo-random function
@@ -95,14 +93,7 @@ const ExplosionMaterial = shaderMaterial(
     }
 
     void main() {
-        // Calculate object-fit: cover UVs
-        vec2 rs = uResolution;
-        vec2 is = uImageResolution;
-        float maxRatio = max(rs.x / is.x, rs.y / is.y);
-        vec2 newSize = is * maxRatio;
-        vec2 offset = (rs - newSize) / 2.0;
-        vec2 uv = (vUv * rs - offset) / newSize;
-
+        vec2 uv = vUv;
         vec2 center = vec2(0.5, 0.5);
         float distToCenter = distance(uv, center);
 

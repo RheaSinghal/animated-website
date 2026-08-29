@@ -10,8 +10,29 @@ gsap.registerPlugin(ScrollTrigger);
 
 const VideoScene = ({ videoRef, progressRef }) => {
   const materialRef = useRef();
-  const { viewport } = useThree();
+  const { viewport, size } = useThree();
   const [videoTexture, setVideoTexture] = useState(null);
+  const [videoDim, setVideoDim] = useState({ w: 1920, h: 1080 });
+
+  // Mobile breakpoint (768px). If screen is larger, use contain (don't crop). If smaller, use cover (crop).
+  const isMobile = size.width < 768;
+  const screenRatio = viewport.width / viewport.height;
+  const videoRatio = videoDim.w / videoDim.h;
+  let scaleX = viewport.width;
+  let scaleY = viewport.height;
+
+  if (isMobile) {
+    // object-fit: cover for phone (crops)
+    if (screenRatio > videoRatio) {
+      scaleY = viewport.width / videoRatio;
+    } else {
+      scaleX = viewport.height * videoRatio;
+    }
+  } else {
+    // Desktop: stretch to fill completely, removing all black stripes
+    scaleX = viewport.width;
+    scaleY = viewport.height;
+  }
 
   useEffect(() => {
     if (videoRef.current) {
@@ -20,6 +41,13 @@ const VideoScene = ({ videoRef, progressRef }) => {
       tex.magFilter = THREE.LinearFilter;
       tex.generateMipmaps = false;
       setVideoTexture(tex);
+      
+      const handleLoad = () => {
+        setVideoDim({ w: videoRef.current.videoWidth, h: videoRef.current.videoHeight });
+      };
+      
+      if (videoRef.current.readyState >= 1) handleLoad();
+      else videoRef.current.addEventListener('loadedmetadata', handleLoad);
     }
   }, [videoRef]);
 
@@ -43,13 +71,13 @@ const VideoScene = ({ videoRef, progressRef }) => {
   });
 
   return (
-    <mesh scale={[viewport.width, viewport.height, 1]}>
+    <mesh scale={[scaleX, scaleY, 1]}>
       <planeGeometry args={[1, 1]} />
       {videoTexture ? (
         <explosionMaterial
           ref={materialRef}
           uTexture={videoTexture}
-          uResolution={new THREE.Vector2(window.innerWidth, window.innerHeight)}
+          uResolution={new THREE.Vector2(size.width, size.height)}
         />
       ) : (
         <meshBasicMaterial color="black" />
@@ -140,7 +168,7 @@ export default function Hero() {
       {/* R3F Canvas */}
       <div 
         ref={canvasWrapperRef}
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 2 }}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 2, backgroundColor: '#050505' }}
       >
         <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
           <VideoScene videoRef={videoRef} progressRef={progressRef} />
