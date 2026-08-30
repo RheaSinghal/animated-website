@@ -108,6 +108,7 @@ export default function Hero({ onReady }) {
   const containerRef = useRef(null);
   const canvasWrapperRef = useRef(null);
   const finalImageRef = useRef(null);
+  const brandRef = useRef(null);
   const contentRef = useRef(null);
   const scrollIndicatorRef = useRef(null);
   const [videoEl, setVideoEl] = useState(null);
@@ -129,8 +130,13 @@ export default function Hero({ onReady }) {
   useEffect(() => {
     if (!videoEl) return;
 
+    let didFire = false;
+
     // Setup the timeline and trigger onReady when video is at least minimally loaded
     const handleReady = () => {
+      if (didFire) return; // guard against double-fire
+      didFire = true;
+
       // Create ScrollTrigger only once
       if (!tlCreated.current) {
         tlCreated.current = true;
@@ -154,8 +160,11 @@ export default function Hero({ onReady }) {
         // We can fade in the video canvas right at the end to reveal the crisp resting background image.
         tl.to(canvasWrapperRef.current, { opacity: 0, duration: 0.1 }, 0.95);
         
-        // Text appears the moment the video ends
-        tl.to(contentRef.current, { opacity: 1, duration: 0.05, ease: 'power2.out' }, 0.95);
+        // Brand panel appears first at the moment the video ends
+        tl.to(brandRef.current, { opacity: 1, duration: 0.05, ease: 'power2.out' }, 0.95);
+        
+        // Content panel fades in slightly after the brand panel
+        tl.to(contentRef.current, { opacity: 1, duration: 0.08, ease: 'power2.out' }, 0.97);
 
         // Force GSAP to recalculate all other triggers (like Sections) now that we've added a 4000px pin spacer
         ScrollTrigger.refresh();
@@ -167,14 +176,31 @@ export default function Hero({ onReady }) {
       if (onReady) onReady();
     };
 
+    // iOS Safari never fires loadeddata/canplaythrough without a user gesture.
+    // We call video.load() on the first touchstart to satisfy the requirement.
+    const iosUnlock = () => {
+      videoEl.load();
+      document.removeEventListener('touchstart', iosUnlock, { once: true });
+    };
+    document.addEventListener('touchstart', iosUnlock, { once: true, passive: true });
+
     if (videoEl.readyState >= 2) { // HAVE_CURRENT_DATA or more
       handleReady();
     } else {
       videoEl.addEventListener('loadeddata', handleReady, { once: true });
       videoEl.addEventListener('canplaythrough', handleReady, { once: true });
+
+      // Fallback: if neither event fires within 3 s (common on iOS without gesture),
+      // proceed anyway so the loader doesn't hang forever.
+      const fallbackTimer = setTimeout(handleReady, 3000);
+
+      const cleanup = () => clearTimeout(fallbackTimer);
+      videoEl.addEventListener('loadeddata', cleanup, { once: true });
+      videoEl.addEventListener('canplaythrough', cleanup, { once: true });
     }
 
     return () => {
+      document.removeEventListener('touchstart', iosUnlock);
       if (timelineRef.current) {
         timelineRef.current.kill();
         timelineRef.current = null;
@@ -195,15 +221,16 @@ export default function Hero({ onReady }) {
         document.body
       )}
 
-      {/* Hidden Video Element to force browser to respect loading lifecycle */}
-      <video 
+      {/* Hidden Video Element — preload="metadata" is the highest level iOS Safari
+          will honour without a user gesture; crossOrigin removed to avoid CORS
+          preflight failures on same-origin video across Android WebViews. */}
+      <video
         ref={videoCallbackRef}
-        src="/hero-video.mp4" 
-        crossOrigin="Anonymous" 
-        muted 
-        playsInline 
-        preload="auto"
-        style={{ display: 'none' }} 
+        src="/hero-video.mp4"
+        muted
+        playsInline
+        preload="metadata"
+        style={{ display: 'none' }}
       />
 
       {/* R3F Canvas */}
@@ -224,7 +251,12 @@ export default function Hero({ onReady }) {
         </div>
       </div>
 
-      {/* Glassmorphism Text Panel */}
+      {/* Brand Glass Panel — appears first */}
+      <div ref={brandRef} className="hero-brand glass-panel">
+        <span className="hero-brand-name">BRAND</span>
+      </div>
+
+      {/* Content Glass Panel — appears after the brand */}
       <div ref={contentRef} className="hero-content glass-panel">
         <h1>Lorem Ipsum Dolor</h1>
         <p>

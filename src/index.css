@@ -87,14 +87,41 @@ html.lenis {
 
 .hero-content {
   position: absolute;
-  top: 50%;
+  top: 65%;
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
   z-index: 3;
   opacity: 0; /* Hidden initially, faded in via GSAP */
-  pointer-events: none; /* Let clicks pass through if needed, though it's just text */
-  will-change: opacity; /* Promoted for GSAP animation */
+  pointer-events: none;
+  will-change: opacity;
+  max-width: 640px;
+  width: 90%;
+}
+
+/* Brand-only glass panel — appears first */
+.hero-brand {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 3;
+  opacity: 0; /* Hidden initially, faded in via GSAP */
+  pointer-events: none;
+  will-change: opacity;
+  padding: 1.5rem 3rem;
+}
+
+.hero-brand-name {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-content h1 {
