@@ -6,8 +6,9 @@ import Loader from './Loader';
 import Navbar from './Navbar';
 import Hero from './Hero';
 
-// Lazy-load Sections — below the fold, not needed in initial bundle
+// Lazy-load below-the-fold components — not needed in initial bundle
 const Sections = lazy(() => import('./Sections'));
+const Footer = lazy(() => import('./Footer'));
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -63,6 +64,7 @@ function App() {
       <Hero onReady={handleVideoReady} />
       <Suspense fallback={null}>
         <Sections />
+        <Footer />
       </Suspense>
     </>
   );

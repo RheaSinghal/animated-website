@@ -251,18 +251,21 @@ export default function Hero({ onReady }) {
         </div>
       </div>
 
-      {/* Brand Glass Panel — appears first */}
-      <div ref={brandRef} className="hero-brand glass-panel">
-        <span className="hero-brand-name">BRAND</span>
-      </div>
+      {/* Stacked panels wrapper — centered once, children stack with gap */}
+      <div className="hero-panels">
+        {/* Brand Glass Panel — appears first, swap /logo.png for your real logo later */}
+        <div ref={brandRef} className="hero-brand glass-panel">
+          <img src="/logo.png" alt="Brand Logo" className="hero-brand-logo" />
+        </div>
 
-      {/* Content Glass Panel — appears after the brand */}
-      <div ref={contentRef} className="hero-content glass-panel">
-        <h1>Lorem Ipsum Dolor</h1>
-        <p>
-          Consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-          Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
-        </p>
+        {/* Content Glass Panel — appears after the brand */}
+        <div ref={contentRef} className="hero-content glass-panel">
+          <h1>Lorem Ipsum Dolor</h1>
+          <p>
+            Consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+          </p>
+        </div>
       </div>
 
     </section>

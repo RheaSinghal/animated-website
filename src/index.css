@@ -85,48 +85,50 @@ html.lenis {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-.hero-content {
+/* Single centered wrapper — children stack vertically, no overlap possible */
+.hero-panels {
   position: absolute;
-  top: 65%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  text-align: center;
   z-index: 3;
-  opacity: 0; /* Hidden initially, faded in via GSAP */
-  pointer-events: none;
-  will-change: opacity;
-  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   width: 90%;
+  max-width: 580px;
+  pointer-events: none;
+}
+
+.hero-content {
+  width: 100%;
+  text-align: center;
+  opacity: 0;
+  will-change: opacity;
 }
 
 /* Brand-only glass panel — appears first */
 .hero-brand {
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  width: 100%;
   text-align: center;
-  z-index: 3;
-  opacity: 0; /* Hidden initially, faded in via GSAP */
-  pointer-events: none;
+  opacity: 0;
   will-change: opacity;
-  padding: 1.5rem 3rem;
+  padding: 1.25rem 2rem;
 }
 
-.hero-brand-name {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.hero-brand-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 12px rgba(255,255,255,0.25));
 }
 
 .hero-content h1 {
-  font-size: 3.5rem;
-  margin-bottom: 1rem;
+  font-size: 2.4rem;
+  margin-bottom: 0.6rem;
   letter-spacing: -0.02em;
   font-weight: 700;
   background: linear-gradient(135deg, #fff 0%, #aaa 100%);
@@ -135,23 +137,24 @@ html.lenis {
 }
 
 .hero-content p {
-  font-size: 1.25rem;
-  color: rgba(255, 255, 255, 0.7);
-  max-width: 600px;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.65);
+  max-width: 480px;
   margin: 0 auto;
+  line-height: 1.6;
 }
 
 /* Section styling */
 .content-section {
-  min-height: 100vh;
+  min-height: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 4rem 2rem;
+  padding: 6rem 2rem;
   position: relative;
   z-index: 1;
-  contain: content; /* Layout isolation — browser knows each section is independent */
+  contain: content;
 }
 
 .section-inner {
@@ -322,11 +325,15 @@ html.lenis {
     font-size: 1.75rem;
   }
   .hero-content h1 {
-    font-size: 2rem;
+    font-size: 1.6rem;
   }
   .hero-content p {
-    font-size: 1rem;
-    padding: 0 1rem;
+    font-size: 0.9rem;
+    padding: 0 0.5rem;
+  }
+  .hero-brand-logo {
+    width: 56px;
+    height: 56px;
   }
 }
 
