@@ -86,6 +86,16 @@
   pointer-events: none;
 }
 
+/* ---- Copyright line ---- */
+.footer-copyright {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 1.5rem 0 2rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
 /* ---- Mobile ---- */
 @media (max-width: 768px) {
   .site-footer {

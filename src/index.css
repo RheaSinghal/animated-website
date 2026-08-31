@@ -6,7 +6,7 @@
   color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
 
-  font-synthesizes: none;
+  font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -46,6 +46,20 @@ html.lenis {
   height: 100vh;
   width: 100vw;
   position: relative;
+}
+
+/* Feeds the WebGL video texture. Kept off-screen and invisible rather than
+   display:none — iOS Safari stops decoding a display:none <video>, which
+   would starve the texture of frames and leave the hero permanently black. */
+.hero-video-source {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .hero-canvas-wrapper {

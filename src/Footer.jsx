@@ -1,5 +1,6 @@
 import React from 'react';
 import './Footer.css';
+import { siteConfig } from './siteConfig';
 
 const Footer = React.memo(function Footer() {
   const currentYear = new Date().getFullYear();
@@ -8,7 +9,7 @@ const Footer = React.memo(function Footer() {
     <footer className="site-footer">
       {/* Oversized company name */}
       <div className="footer-brand-wrapper">
-        <span className="footer-brand-text">COMPANY</span>
+        <span className="footer-brand-text">{siteConfig.company.name}</span>
       </div>
 
       {/* Glowing horizontal bars below the name */}
@@ -18,6 +19,10 @@ const Footer = React.memo(function Footer() {
         <span className="bar bar-3"></span>
         <span className="bar bar-4"></span>
       </div>
+
+      <p className="footer-copyright">
+        &copy; {currentYear} {siteConfig.company.name}. All rights reserved.
+      </p>
     </footer>
   );
 });

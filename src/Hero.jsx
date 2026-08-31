@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import './ExplosionShader';
+import { siteConfig } from './siteConfig';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -50,6 +51,10 @@ const VideoScene = React.memo(({ videoEl, progressRef }) => {
       tex.minFilter = THREE.LinearFilter;
       tex.magFilter = THREE.LinearFilter;
       tex.generateMipmaps = false;
+      // A THREE.VideoTexture is a WebGL resource allocation tied to the video
+      // element, not data derivable during render; it needs the effect's
+      // cleanup below to dispose it and free GPU memory.
+      // oxlint-disable-next-line react/set-state-in-effect
       setVideoTexture(tex);
       
       const handleLoad = () => {
@@ -77,9 +82,21 @@ const VideoScene = React.memo(({ videoEl, progressRef }) => {
       let videoProgress = Math.min(p / videoScrubEnd, 1.0);
       let shaderProgress = Math.max(0, (p - videoScrubEnd) / (1.0 - videoScrubEnd));
       
-      if (videoEl && videoEl.readyState >= 2) {
-        // We use requestAnimationFrame in useFrame to smoothly update time
-        videoEl.currentTime = videoProgress * videoEl.duration;
+      // `seeking` guard + epsilon: every currentTime write starts a new async
+      // decode-and-seek. Issuing one every rAF tick — including ones smaller
+      // than a frame, or while the last seek hasn't resolved yet — is what
+      // makes video scrubbing stutter; skip anything that isn't a real step
+      // forward/back.
+      if (videoEl && videoEl.readyState >= 2 && !videoEl.seeking) {
+        const targetTime = videoProgress * videoEl.duration;
+        if (Math.abs(videoEl.currentTime - targetTime) > 0.032) {
+          // We use requestAnimationFrame in useFrame to smoothly update time.
+          // useFrame runs outside React's render/commit cycle (r3f's
+          // imperative rAF loop), so scrubbing currentTime here is standard
+          // imperative DOM control, not a render-time mutation.
+          // oxlint-disable-next-line react/immutability
+          videoEl.currentTime = targetTime;
+        }
       }
 
       materialRef.current.uProgress = shaderProgress;
@@ -221,16 +238,20 @@ export default function Hero({ onReady }) {
         document.body
       )}
 
-      {/* Hidden Video Element — preload="metadata" is the highest level iOS Safari
-          will honour without a user gesture; crossOrigin removed to avoid CORS
-          preflight failures on same-origin video across Android WebViews. */}
+      {/* Off-screen video element that feeds the WebGL texture — preload="metadata"
+          is the highest level iOS Safari will honour without a user gesture;
+          crossOrigin removed to avoid CORS preflight failures on same-origin
+          video across Android WebViews. Deliberately NOT display:none: iOS
+          Safari suspends decoding on display:none video elements, so the
+          texture would never receive frames and the hero would stay black —
+          this keeps it "displayed" at 1x1px and fully transparent instead. */}
       <video
         ref={videoCallbackRef}
         src="/hero-video.mp4"
         muted
         playsInline
         preload="metadata"
-        style={{ display: 'none' }}
+        className="hero-video-source"
       />
 
       {/* R3F Canvas */}
@@ -255,16 +276,13 @@ export default function Hero({ onReady }) {
       <div className="hero-panels">
         {/* Brand Glass Panel — appears first, swap /logo.png for your real logo later */}
         <div ref={brandRef} className="hero-brand glass-panel">
-          <img src="/logo.png" alt="Brand Logo" className="hero-brand-logo" />
+          <img src={siteConfig.brand.logoSrc} alt={siteConfig.brand.logoAlt} className="hero-brand-logo" />
         </div>
 
         {/* Content Glass Panel — appears after the brand */}
         <div ref={contentRef} className="hero-content glass-panel">
-          <h1>Lorem Ipsum Dolor</h1>
-          <p>
-            Consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
-          </p>
+          <h1>{siteConfig.hero.heading}</h1>
+          <p>{siteConfig.hero.body}</p>
         </div>
       </div>
 

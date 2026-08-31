@@ -22,7 +22,11 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const isLoading = !isTimeUp;
+  // Loader stays up until both the minimum cinematic timer has elapsed
+  // AND the hero video has actually signaled it's ready to play — whichever
+  // takes longer (protects against hiding the loader onto an unready hero
+  // on a slow connection).
+  const isLoading = !isTimeUp || !isVideoReady;
 
   // Stable callback ref — prevents Hero's useEffect from re-firing
   const handleVideoReady = useCallback(() => {
