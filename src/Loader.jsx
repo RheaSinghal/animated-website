@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import './Loader.css';
 
 /**
@@ -14,6 +14,16 @@ const generateStar = () => ({
 
 const Loader = React.memo(function Loader({ isLoading }) {
   const [shouldRender, setShouldRender] = useState(true);
+  const [prevIsLoading, setPrevIsLoading] = useState(isLoading);
+
+  // If we go back to loading after unmounting (shouldn't normally happen,
+  // but defensive), re-arm rendering. Derived during render — React's
+  // documented pattern for resetting state from a prop change — instead of
+  // in an effect, so it never fires a second, cascading commit.
+  if (isLoading !== prevIsLoading) {
+    setPrevIsLoading(isLoading);
+    if (isLoading) setShouldRender(true);
+  }
 
   // Generate stars once and memoize — prevents re-computation on re-renders
   const stars = useMemo(() => Array.from({ length: 35 }, generateStar), []);
@@ -23,13 +33,6 @@ const Loader = React.memo(function Loader({ isLoading }) {
   const handleTransitionEnd = useCallback(() => {
     if (!isLoading) {
       setShouldRender(false);
-    }
-  }, [isLoading]);
-
-  // If we go back to loading (shouldn't normally happen, but defensive), re-mount
-  useEffect(() => {
-    if (isLoading) {
-      setShouldRender(true);
     }
   }, [isLoading]);
 

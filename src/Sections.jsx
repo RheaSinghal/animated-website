@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { siteConfig } from './siteConfig';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -42,7 +43,7 @@ const SECTIONS_DATA = [
       'Tell us what you are building and what is in the way. We read everything and reply within two working days, usually with questions before a proposal.',
       'For press, speaking, or anything else, the same address reaches us.',
     ],
-    action: { label: 'hello@studio.example', href: 'mailto:hello@studio.example' },
+    action: { label: siteConfig.contact.email, href: `mailto:${siteConfig.contact.email}` },
   },
 ];
 

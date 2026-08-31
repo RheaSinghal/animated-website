@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { siteConfig } from './siteConfig';
 
 const Navbar = React.memo(function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,7 +27,7 @@ const Navbar = React.memo(function Navbar() {
     <>
       <nav className="navbar">
         <div className="nav-logo" onClick={closeMenu}>
-          BRAND
+          {siteConfig.brand.name}
         </div>
         
         <button 
@@ -47,10 +48,11 @@ const Navbar = React.memo(function Navbar() {
         {/* Menu Items */}
         <div className="nav-overlay-content">
           <ul className="nav-links">
-            <li><a href="#home" onClick={closeMenu}>Home</a></li>
-            <li><a href="#work" onClick={closeMenu}>Work</a></li>
-            <li><a href="#about" onClick={closeMenu}>About</a></li>
-            <li><a href="#contact" onClick={closeMenu}>Contact</a></li>
+            {siteConfig.nav.map((item) => (
+              <li key={item.href}>
+                <a href={item.href} onClick={closeMenu}>{item.label}</a>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
